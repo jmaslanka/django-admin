@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Custom Admin Panel</title>
+  <style>
+    select[multiple] {
+      min-height: 150px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 40%;
+    }
+    td, th {
+      border: 1px solid #dddddd;
+      text-align: left;
+      padding: 8px;
+    }
+    tr:nth-child(even) {
+      background-color: #dddddd;
+    }
+  </style>
+</head>
+<body>
+  {% if models_select %}
+    <form method="POST">
+      {% csrf_token %}
+      <select name="select_models" multiple="multiple">
+        {% for model in models_select %}
+          <option value="{{ forloop.counter0 }}" >{{ model.0 }}.{{ model.1 }}</option>
+        {% endfor %}
+      </select>
+      <input type="submit" value="Add" name="add">
+    </form>
+  {% endif %}
+  {% if models_remove %}
+    <form method="POST">
+      {% csrf_token %}
+      <select name="remove_models" multiple="multiple">
+        {% for model in models_remove %}
+          <option value="{{ forloop.counter0 }}" >{{ model.0 }}.{{ model.1 }}</option>
+        {% endfor %}
+      </select>
+      <input type="submit" value="Remove" name="remove">
+    </form>
+  {% endif %}
+  {% for model in models_view %}
+    <table>
+      <tr><th>{{ model.0 }} objects</th></tr>
+      {% for obj in model.1 %}
+        <tr><td>{{ obj }}</td></tr>
+      {% endfor %}
+    </table>
+    <div class="pagination">
+      <span class="step-links">
+        {% if model.1.has_previous %}
+          <a href="?{{ model.0 }}={{ model.1.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+          Page {{ model.1.number }} of {{ model.1.paginator.num_pages }}.
+        </span>
+
+        {% if model.1.has_next %}
+          <a href="?{{ model.0 }}={{ model.1.next_page_number }}">next</a>
+        {% endif %}
+      </span>
+    </div>
+  {% endfor %}
+</body>
+</html>
