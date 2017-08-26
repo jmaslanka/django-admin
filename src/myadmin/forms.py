@@ -2,11 +2,11 @@ from django import forms
 
 
 def create_form(custom_model, *args, **kwargs):
-    class EditForm(forms.ModelForm):
+    class ModelForm(forms.ModelForm):
         def __init__(self, *args, **kwargs):
-            super(EditForm, self).__init__(*args, **kwargs)
+            super(ModelForm, self).__init__(*args, **kwargs)
 
         class Meta:
             model = custom_model
             exclude = []
-    return EditForm
+    return ModelForm

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Object view</title>
+  <style>
+    .relative {
+      position: relative;
+    }
+    .relative .pull-right {
+      position: absolute;
+      right: 5px;
+      bottom: 3px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 40%;
+    }
+    td, th {
+      border: 1px solid #dddddd;
+      text-align: left;
+      padding: 8px;
+    }
+    tr:nth-child(even) {
+      background-color: #dddddd;
+    }
+  </style>
+</head>
+<body>
+  <table>
+    <tr><th>Objects for model: {{ model_name }}</th></tr>
+    {% for obj in object_list %}
+      <tr><td class="relative">
+          {{ obj }}
+          <div class="pull-right">
+            {% if change_perm in perms %}
+              <a href="{% url 'myadmin:edit' model_name=model_name obj_pk=obj.pk %}?next={{ request.path|urlencode }}">
+                <button type="button">Edit</button></a>
+            {% endif %}
+            {% if delete_perm in perms %}
+              <a href="{% url 'myadmin:delete' model_name=model_name obj_pk=obj.pk %}?next={{ request.path|urlencode }}"
+                 onclick="return confirm('Are you sure?');">
+                <button type="button">Delete</button></a>
+            {% endif %}
+          </div>
+      </td></tr>
+    {% endfor %}
+  </table>
+  {% if is_paginated %}
+    <div class="pagination">
+      <span class="step-links">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+        {% endif %}
+
+        <span class="current">
+          Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+        </span>
+
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}">Next</a>
+        {% endif %}
+      </span>
+    </div>
+  {% endif %}
+  <a href="{% url 'myadmin:panel' %}"><button type="button">Back to Panel</button></a>
+  {% if add_perm in perms %}
+    <a href="{% url 'myadmin:create' model_name=model_name %}">
+      <button type="button">Create new</button></a>
+  {% endif %}
+</body>
+</html>

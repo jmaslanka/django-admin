@@ -6,3 +6,8 @@ class AdminPanel(models.Model):
 
     def __str__(self):
         return 'AdminPanel: {:.80}'.format(str(self.models_text))
+
+    class Meta:
+        permissions = (
+            ('access_panel', 'Can access myadmin panel'),
+        )

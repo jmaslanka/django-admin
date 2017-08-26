@@ -1,21 +1,30 @@
 import json
 
 from django.apps import apps
+from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.shortcuts import render
+from django.shortcuts import (
+    render,
+    redirect,
+    get_object_or_404
+)
 from django.views import View
+from django.views.generic.list import ListView
 
 from myadmin.models import AdminPanel
+from myadmin.forms import create_form
 
 
-class AdminPanelView(View):
+class AdminPanelView(PermissionRequiredMixin, View):
     """
     View for custom admin panel.
     """
-    template = 'myadmin/admin.html'
+    permission_required = 'myadmin.access_panel'
+    template_name = 'myadmin/admin.html'
     models = apps.get_models()
     admin_panel = AdminPanel.objects.first()
-    paginate_by = 8
+    paginate_by = 6
 
     def get_existing_models(self):
         if self.admin_panel.models_text:
@@ -72,7 +81,7 @@ class AdminPanelView(View):
             'models_select': self.get_add_models_names(),
             'models_remove': self.get_remove_models_names()
         }
-        return render(request, self.template, context=context)
+        return render(request, self.template_name, context=context)
 
     def post(self, request, *args, **kwargs):
         if 'add' in request.POST:
@@ -102,3 +111,130 @@ class AdminPanelView(View):
             self.admin_panel.models_text = json.dumps(list(map(str, existing)))
             self.admin_panel.save()
         return self.get(request, *args, **kwargs)
+
+
+class ModelListView(PermissionRequiredMixin, ListView):
+    permission_required = 'myadmin.access_panel'
+    raise_exception = True
+    template_name = 'myadmin/objects_view.html'
+    paginate_by = 15
+    model_name = ''
+
+    def get_queryset(self):
+        model_name = self.kwargs.pop('model_name')
+        self.model_name = model_name
+        model = apps.get_model(model_name)
+        queryset = model.objects.all()
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super(ModelListView, self).get_context_data(**kwargs)
+        context['model_name'] = self.model_name
+        context['add_perm'] = '{}.add_{}'.format(*self.model_name.split('.'))
+        context['delete_perm'] = '{}.delete_{}'.format(
+            *self.model_name.split('.')
+        )
+        context['change_perm'] = '{}.change_{}'.format(
+            *self.model_name.split('.')
+        )
+        return context
+
+
+class ObjectCreateView(PermissionRequiredMixin, View):
+    permission_required = 'myadmin.access_panel'
+    raise_exception = True
+    template_name = 'myadmin/single_object_view.html'
+
+    def get(self, request, model_name, *args, **kwargs):
+        permission_name = '{}.add_{}'.format(*model_name.split('.'))
+        if not request.user.has_perm(permission_name):
+            raise PermissionDenied
+
+        try:
+            model = apps.get_model(model_name)
+        except LookupError:
+            return redirect('myadmin:panel')
+
+        form = create_form(model)()
+        return render(
+            request, self.template_name,
+            {'form': form, 'model_name': model_name}
+        )
+
+    def post(self, request, model_name, *args, **kwargs):
+        permission_name = '{}.add_{}'.format(*model_name.split('.'))
+        if not request.user.has_perm(permission_name):
+            raise PermissionDenied
+
+        try:
+            model = apps.get_model(model_name)
+        except LookupError:
+            return redirect('myadmin:panel')
+        form = create_form(model)(request.POST)
+
+        if form.is_valid():
+            form.save()
+            return redirect('myadmin:objects', model_name=model_name)
+        return render(
+            request, self.template_name,
+            {'form': form, 'model_name': model_name}
+        )
+
+
+class ObjectEditView(PermissionRequiredMixin, View):
+    permission_required = 'myadmin.access_panel'
+    raise_exception = True
+    template_name = 'myadmin/single_object_view.html'
+
+    def get(self, request, model_name, obj_pk, *args, **kwargs):
+        permission_name = '{}.change_{}'.format(*model_name.split('.'))
+        if not request.user.has_perm(permission_name):
+            raise PermissionDenied
+
+        try:
+            model = apps.get_model(model_name)
+        except LookupError:
+            return redirect('myadmin:panel')
+        obj = get_object_or_404(model, pk=obj_pk)
+        form = create_form(model)(instance=obj)
+        return render(
+            request, self.template_name,
+            {'form': form, 'model_name': model_name}
+        )
+
+    def post(self, request, model_name, obj_pk, *args, **kwargs):
+        permission_name = '{}.change_{}'.format(*model_name.split('.'))
+        if not request.user.has_perm(permission_name):
+            raise PermissionDenied
+
+        try:
+            model = apps.get_model(model_name)
+        except LookupError:
+            return redirect('myadmin:panel')
+        obj = get_object_or_404(model, pk=obj_pk)
+        form = create_form(model)(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            return redirect('myadmin:objects', model_name=model_name)
+        return render(
+            request, self.template_name,
+            {'form': form, 'model_name': model_name}
+        )
+
+
+class ObjectDeleteView(PermissionRequiredMixin, View):
+    permission_required = 'myadmin.access_panel'
+    raise_exception = True
+
+    def get(self, request, model_name, obj_pk):
+        permission_name = '{}.delete_{}'.format(*model_name.split('.'))
+        if not request.user.has_perm(permission_name):
+            raise PermissionDenied
+
+        try:
+            model = apps.get_model(model_name)
+        except LookupError:
+            return redirect('myadmin:panel')
+        get_object_or_404(model, pk=obj_pk).delete()
+        next_url = request.GET.get('next', '/')
+        return redirect(next_url)

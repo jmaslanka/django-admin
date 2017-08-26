@@ -4,6 +4,14 @@
   <meta charset="UTF-8">
   <title>Custom Admin Panel</title>
   <style>
+    .relative .pull-right {
+      position: absolute;
+      right: 5px;
+      bottom: 3px;
+    }
+    .relative {
+      position: relative;
+    }
     select[multiple] {
       min-height: 150px;
     }
@@ -23,30 +31,40 @@
 </head>
 <body>
   {% if models_select %}
-    <form method="POST">
-      {% csrf_token %}
-      <select name="select_models" multiple="multiple">
-        {% for model in models_select %}
-          <option value="{{ forloop.counter0 }}" >{{ model.0 }}.{{ model.1 }}</option>
-        {% endfor %}
-      </select>
-      <input type="submit" value="Add" name="add">
-    </form>
+    <div style="float: left;">
+      <form method="POST">
+        {% csrf_token %}
+        <select name="select_models" multiple="multiple">
+          {% for model in models_select %}
+            <option value="{{ forloop.counter0 }}" >{{ model.0 }}.{{ model.1 }}</option>
+          {% endfor %}
+        </select><br>
+        <input type="submit" value="Add" name="add">
+      </form>
+    </div>
   {% endif %}
   {% if models_remove %}
-    <form method="POST">
-      {% csrf_token %}
-      <select name="remove_models" multiple="multiple">
-        {% for model in models_remove %}
-          <option value="{{ forloop.counter0 }}" >{{ model.0 }}.{{ model.1 }}</option>
-        {% endfor %}
-      </select>
-      <input type="submit" value="Remove" name="remove">
-    </form>
+    <div style="float: left;">
+      <form method="POST">
+        {% csrf_token %}
+        <select name="remove_models" multiple="multiple">
+          {% for model in models_remove %}
+            <option value="{{ forloop.counter0 }}" >{{ model.0 }}.{{ model.1 }}</option>
+          {% endfor %}
+        </select><br>
+        <input type="submit" value="Remove" name="remove">
+      </form>
+    </div>
   {% endif %}
+  <div style="clear: both;"></div>
   {% for model in models_view %}
     <table>
-      <tr><th>{{ model.0 }} objects</th></tr>
+      <tr><th class="relative">
+        {{ model.0 }} objects
+        <a href="{% url 'myadmin:objects' model_name=model.0 %}" class="pull-right">
+          <button type="button">Manage/View objects</button>
+        </a>
+      </th></tr>
       {% for obj in model.1 %}
         <tr><td>{{ obj }}</td></tr>
       {% endfor %}
@@ -54,7 +72,7 @@
     <div class="pagination">
       <span class="step-links">
         {% if model.1.has_previous %}
-          <a href="?{{ model.0 }}={{ model.1.previous_page_number }}">previous</a>
+          <a href="?{{ model.0 }}={{ model.1.previous_page_number }}">Previous</a>
         {% endif %}
 
         <span class="current">
@@ -62,7 +80,7 @@
         </span>
 
         {% if model.1.has_next %}
-          <a href="?{{ model.0 }}={{ model.1.next_page_number }}">next</a>
+          <a href="?{{ model.0 }}={{ model.1.next_page_number }}">Next</a>
         {% endif %}
       </span>
     </div>
