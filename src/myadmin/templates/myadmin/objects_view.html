@@ -34,11 +34,11 @@
           {{ obj }}
           <div class="pull-right">
             {% if change_perm in perms %}
-              <a href="{% url 'myadmin:edit' model_name=model_name obj_pk=obj.pk %}?next={{ request.path|urlencode }}">
+              <a href="{% url 'myadmin:edit' model_name=model_name obj_pk=obj.pk %}">
                 <button type="button">Edit</button></a>
             {% endif %}
             {% if delete_perm in perms %}
-              <a href="{% url 'myadmin:delete' model_name=model_name obj_pk=obj.pk %}?next={{ request.path|urlencode }}"
+              <a href="{% url 'myadmin:delete' model_name=model_name obj_pk=obj.pk %}"
                  onclick="return confirm('Are you sure?');">
                 <button type="button">Delete</button></a>
             {% endif %}

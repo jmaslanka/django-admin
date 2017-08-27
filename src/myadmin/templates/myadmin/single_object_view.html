@@ -8,8 +8,8 @@
   <form method="POST">
     {% csrf_token %}
     {{ form.as_p }}
-    <input type="submit" value="Submit">
     <a href="{% url 'myadmin:objects' model_name=model_name %}"><button type="button">Cancel</button></a>
+    <input type="submit" value="Submit">
   </form>
 </body>
 </html>

@@ -21,6 +21,7 @@ class AdminPanelView(PermissionRequiredMixin, View):
     View for custom admin panel.
     """
     permission_required = 'myadmin.access_panel'
+    raise_exception = True
     template_name = 'myadmin/admin.html'
     models = apps.get_models()
     admin_panel = AdminPanel.objects.first()
@@ -33,14 +34,16 @@ class AdminPanelView(PermissionRequiredMixin, View):
             return list()
 
         result = []
+        str_models = list(map(str, self.models))
         for obj in existing_models:
-            str_models = list(map(str, self.models))
             result.append(self.models[str_models.index(obj)])
         return result
 
     def get_add_models_names(self, get_objects=False):
         result = []
         if not self.admin_panel.models_text:
+            if get_objects:
+                return self.models
             return [(obj._meta.app_label, obj.__name__) for obj in self.models]
         existing = json.loads(self.admin_panel.models_text)
         for obj in self.models:
@@ -61,7 +64,7 @@ class AdminPanelView(PermissionRequiredMixin, View):
 
         for obj in existing_models:
             obj_name = '{}.{}'.format(obj._meta.app_label, obj.__name__)
-            obj_list = obj.objects.all()
+            obj_list = list(obj.objects.all())
             paginator = Paginator(obj_list, self.paginate_by)
 
             page = request.GET.get(obj_name)
@@ -130,12 +133,13 @@ class ModelListView(PermissionRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super(ModelListView, self).get_context_data(**kwargs)
         context['model_name'] = self.model_name
-        context['add_perm'] = '{}.add_{}'.format(*self.model_name.split('.'))
+        app_, model_ = self.model_name.split('.')
+        context['add_perm'] = '{}.add_{}'.format(app_.lower(), model_.lower())
         context['delete_perm'] = '{}.delete_{}'.format(
-            *self.model_name.split('.')
+            app_.lower(), model_.lower()
         )
         context['change_perm'] = '{}.change_{}'.format(
-            *self.model_name.split('.')
+            app_.lower(), model_.lower()
         )
         return context
 
@@ -146,7 +150,8 @@ class ObjectCreateView(PermissionRequiredMixin, View):
     template_name = 'myadmin/single_object_view.html'
 
     def get(self, request, model_name, *args, **kwargs):
-        permission_name = '{}.add_{}'.format(*model_name.split('.'))
+        app_, model_ = model_name.split('.')
+        permission_name = '{}.add_{}'.format(app_.lower(), model_.lower())
         if not request.user.has_perm(permission_name):
             raise PermissionDenied
 
@@ -162,7 +167,8 @@ class ObjectCreateView(PermissionRequiredMixin, View):
         )
 
     def post(self, request, model_name, *args, **kwargs):
-        permission_name = '{}.add_{}'.format(*model_name.split('.'))
+        app_, model_ = model_name.split('.')
+        permission_name = '{}.add_{}'.format(app_.lower(), model_.lower())
         if not request.user.has_perm(permission_name):
             raise PermissionDenied
 
@@ -187,7 +193,8 @@ class ObjectEditView(PermissionRequiredMixin, View):
     template_name = 'myadmin/single_object_view.html'
 
     def get(self, request, model_name, obj_pk, *args, **kwargs):
-        permission_name = '{}.change_{}'.format(*model_name.split('.'))
+        app_, model_ = model_name.split('.')
+        permission_name = '{}.change_{}'.format(app_.lower(), model_.lower())
         if not request.user.has_perm(permission_name):
             raise PermissionDenied
 
@@ -203,7 +210,8 @@ class ObjectEditView(PermissionRequiredMixin, View):
         )
 
     def post(self, request, model_name, obj_pk, *args, **kwargs):
-        permission_name = '{}.change_{}'.format(*model_name.split('.'))
+        app_, model_ = model_name.split('.')
+        permission_name = '{}.change_{}'.format(app_.lower(), model_.lower())
         if not request.user.has_perm(permission_name):
             raise PermissionDenied
 
@@ -227,7 +235,8 @@ class ObjectDeleteView(PermissionRequiredMixin, View):
     raise_exception = True
 
     def get(self, request, model_name, obj_pk):
-        permission_name = '{}.delete_{}'.format(*model_name.split('.'))
+        app_, model_ = model_name.split('.')
+        permission_name = '{}.delete_{}'.format(app_.lower(), model_.lower())
         if not request.user.has_perm(permission_name):
             raise PermissionDenied
 
@@ -236,5 +245,4 @@ class ObjectDeleteView(PermissionRequiredMixin, View):
         except LookupError:
             return redirect('myadmin:panel')
         get_object_or_404(model, pk=obj_pk).delete()
-        next_url = request.GET.get('next', '/')
-        return redirect(next_url)
+        return redirect('myadmin:objects', model_name=model_name)
