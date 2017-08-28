@@ -40,7 +40,16 @@ INSTALLED_APPS = [
 
     'myadmin',
     'testapp',
+    'rest_framework',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'myadmin.api.permissions.PanelAccessPermission',
+        'rest_framework.permissions.DjangoModelPermissions',
+    ],
+    'PAGE_SIZE': 5
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
